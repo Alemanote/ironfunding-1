@@ -34,18 +34,18 @@ app.use(session({
 	secret: 'ironfundingdev',
 	resave: false,
 	saveUninitialized: true,
-  store: new MongoStore( { mongooseConnection: mongoose.connection })
+	store: new MongoStore( { mongooseConnection: mongoose.connection })
 }));
 
 passport.serializeUser((user, callback) => {
-  return callback(null, user.id);
+	return callback(null, user.id);
 });
 
 passport.deserializeUser((id, cb) => {
-  User.findById(id, (err, user) => {
-    if (err) { return cb(err); }
-    cb(null, user);
-  });
+	User.findById(id, (err, user) => {
+		if (err) { return cb(err); }
+		cb(null, user);
+	});
 });
 
 passport.use('local-signup', new LocalStrategy({passReqToCallback: true},
@@ -66,6 +66,23 @@ passport.use('local-signup', new LocalStrategy({passReqToCallback: true},
 	}
 ))
 
+passport.use('local-login', new LocalStrategy({passReqToCallback: true},
+	(req, username, password, next) => {
+		User.findOne({ username }, (err, user) => {
+		 if (err) {
+			 return next(err);
+		 }
+		 if (!user) {
+			 return next(null, false, { message: "Incorrect username" });
+		 }
+		 if (!bcrypt.compareSync(password, user.password)) {
+			 return next(null, false, { message: "Incorrect password" });
+		 }
+		 return next(null, user);
+		});
+	}
+))
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -77,20 +94,20 @@ app.use('/', authRoutes);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
-  let err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+	let err = new Error('Not Found');
+	err.status = 404;
+	next(err);
 });
 
 // error handler
 app.use((err, req, res, next) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+	// set locals, only providing error in development
+	res.locals.message = err.message;
+	res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+	// render the error page
+	res.status(err.status || 500);
+	res.render('error');
 });
 
 module.exports = app;
